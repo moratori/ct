@@ -5,31 +5,52 @@ docstring is here
 """
 
 import common.framework.application.mysqlapplication as appframe
-import common.data.dao as dao
+from common.data.logserver import LogServer
+from logic.loglist import LogList
+from typing import List
+
 
 global LOGGER
 
 
-class DBApplication(appframe.MySQLApplication):
+class RegistLogServer(appframe.MySQLApplication):
 
     def __init__(self):
         super().__init__(__name__, __file__)
 
     def validate_config(self):
         super().validate_config()
+        str(self.conf.self.loglist.url)
+        int(self.conf.self.loglist.timeout)
+        int(self.conf.self.ctclient.timeout)
 
     def setup_resource(self):
         super().setup_resource()
 
-    def get_something_record(self):
-        ret = self.session.query(dao.SomethingTable)
-        return ret
-
     def setup_application(self):
         pass
 
+    def regist_readable_server(self, servers: List[LogServer]):
+
+        for server in servers:
+            alredy = self.session.query(LogServer).\
+                filter(LogServer.log_id == server.log_id).\
+                all()
+            if not alredy:
+                self.session.add(server)
+
+        self.session.commit()
+
     def run_application(self):
-        print("hello, world")
+        loglist = LogList()
+        loglist.get_list(
+            self.conf.self.loglist.url,
+            self.conf.self.loglist.timeout)
+
+        readable = loglist.find_readable_server(
+            self.conf.self.ctclient.timeout)
+
+        self.regist_readable_server(readable)
 
     def teardown_application(self):
         pass
@@ -39,6 +60,6 @@ class DBApplication(appframe.MySQLApplication):
 
 
 if __name__ == "__main__":
-    dbapp = DBApplication()
-    LOGGER = dbapp.create_toplevel_logger()
-    dbapp.start()
+    app = RegistLogServer()
+    LOGGER = app.create_toplevel_logger()
+    app.start()
