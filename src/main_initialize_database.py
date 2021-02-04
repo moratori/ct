@@ -2,7 +2,7 @@
 
 
 import common.framework.application.mysqlapplication as appframe
-import common.data.dao as dao
+import common.data.LogServers as LogServers
 
 global LOGGER
 
@@ -22,7 +22,7 @@ class InitializeDatabase(appframe.MySQLApplication):
         pass
 
     def run_application(self, **args):
-        dao.Base.metadata.create_all(bind=self.dbengine)
+        LogServers.Base.metadata.create_all(bind=self.dbengine)
 
     def teardown_application(self):
         pass
