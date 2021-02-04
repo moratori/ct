@@ -2,7 +2,7 @@
 
 
 import common.framework.application.mysqlapplication as appframe
-import common.data.LogServers as LogServers
+import common.data.LogServer as LogServer
 
 global LOGGER
 
