@@ -8,16 +8,16 @@ LOGGER = getLogger(__name__)
 Base = declarative_base()
 
 
-class LogServers(Base):
+class LogServer(Base):
 
-    __tablename__ = "log_servers"
+    __tablename__ = "log_server"
 
     log_id = Column("log_id",
                     String(128),
                     nullable=False,
                     primary_key=True)
 
-    operator_name = Column("operator_name",
+    operator = Column("operator_name",
                            String(256),
                            nullable=False)
     
