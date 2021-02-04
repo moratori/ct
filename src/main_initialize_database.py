@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-
 import common.framework.application.mysqlapplication as appframe
-import common.data.LogServer as LogServer
+import common.data.logserver as LogServer
 
 global LOGGER
 
@@ -22,7 +21,7 @@ class InitializeDatabase(appframe.MySQLApplication):
         pass
 
     def run_application(self, **args):
-        LogServers.Base.metadata.create_all(bind=self.dbengine)
+        LogServer.Base.metadata.create_all(bind=self.dbengine)
 
     def teardown_application(self):
         pass
