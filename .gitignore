@@ -1,0 +1,10 @@
+.venv/
+.mypy_cache/
+*.pyc
+Pipfile.lock
+appcache/
+logs/*.log
+logs/*.log.*
+test/htmlcov
+test/.coverage
+test/coverage.xml
