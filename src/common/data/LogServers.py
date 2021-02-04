@@ -26,7 +26,7 @@ class LogServers(Base):
                          nullable=False)
 
     added_at = Column("added_at",
-                      Datetime(),
+                      DateTime(),
                       nullable=False)
 
     url = Column("url",
@@ -34,6 +34,6 @@ class LogServers(Base):
                  nullable=False)
     
     access_failed_cnt = Column("access_failed_cnt",
-                               Integer(unsigned=True),
+                               Integer,
                                nullable=False,
                                default=0)
