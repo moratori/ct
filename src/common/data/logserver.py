@@ -17,7 +17,7 @@ class LogServer(Base):  # type: ignore
                     nullable=False,
                     primary_key=True)
 
-    operator = Column("operator_name",
+    operator = Column("operator",
                       String(256),
                       nullable=False)
 
