@@ -8,7 +8,7 @@ LOGGER = getLogger(__name__)
 Base = declarative_base()
 
 
-class LogServer(Base):
+class LogServer(Base):  # type: ignore
 
     __tablename__ = "log_server"
 
@@ -18,9 +18,9 @@ class LogServer(Base):
                     primary_key=True)
 
     operator = Column("operator_name",
-                           String(256),
-                           nullable=False)
-    
+                      String(256),
+                      nullable=False)
+
     description = Column("description",
                          String(512),
                          nullable=False)
@@ -32,7 +32,7 @@ class LogServer(Base):
     url = Column("url",
                  String(1024),
                  nullable=False)
-    
+
     access_failed_cnt = Column("access_failed_cnt",
                                Integer,
                                nullable=False,
