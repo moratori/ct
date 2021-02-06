@@ -49,8 +49,8 @@ class MaintainLogServer(appframe.MySQLApplication):
 
         target: List[LogServer] = \
             self.session.query(LogServer.log_id).\
-                filter(LogServer.access_failed_cnt >= th).\
-                all()
+            filter(LogServer.access_failed_cnt >= th).\
+            all()
 
         for server in target:
             LOGGER.info("deactivating log server: %s" % server.url)
