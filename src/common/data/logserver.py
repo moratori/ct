@@ -2,6 +2,8 @@
 
 from logging import getLogger
 from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Boolean
+from sqlalchemy import BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 
 LOGGER = getLogger(__name__)
@@ -9,8 +11,6 @@ Base = declarative_base()
 
 
 class LogServer(Base):  # type: ignore
-
-    __tablename__ = "log_server"
 
     log_id = Column("log_id",
                     String(128),
@@ -37,3 +37,14 @@ class LogServer(Base):  # type: ignore
                                Integer,
                                nullable=False,
                                default=0)
+
+    deactivated = Column("deactivated",
+                         Boolean,
+                         nullable=False,
+                         default=False)
+
+    version = Column(BigInteger,
+                     nullable=False)
+
+    __tablename__ = "log_server"
+    __mapper_args__ = {'version_id_col': version}
