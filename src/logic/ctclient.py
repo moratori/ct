@@ -22,13 +22,14 @@ def get_json_from_url(url, timeout, params=dict()) -> Optional[Any]:
         if (res.status_code != 200 or
                 (not content_type.startswith("application/json") and
                  not content_type.startswith("text/plain"))):
-            LOGGER.error("status code: %s" % str(res.status_code))
-            LOGGER.error("content type: %s" % str(content_type))
+            LOGGER.error(
+                "status code: %s, content type: %s" %
+                (str(res.status_code), str(content_type)))
             return None
         return res.json()
     except Exception as ex:
-        LOGGER.error("exception occurred: %s" % str(ex))
-        LOGGER.error("unable to get json data from %s" % url)
+        LOGGER.warning("unable to get json data from %s" % url)
+        LOGGER.info("exception occurred: %s" % str(ex))
         return None
 
 
@@ -40,13 +41,14 @@ def post_json_to_url(url, timeout, data=dict()):
         if (res.status_code != 200 or
                 (not content_type.startswith("application/json") and
                  not content_type.startswith("text/plain"))):
-            LOGGER.error("status code: %s" % str(res.status_code))
-            LOGGER.error("content type: %s" % str(content_type))
+            LOGGER.error(
+                "status code: %s, content type: %s" %
+                (str(res.status_code), str(content_type)))
             return None
         return res.json()
     except Exception as ex:
-        LOGGER.error("exception occurred: %s" % str(ex))
-        LOGGER.error("unable to get json data from %s" % url)
+        LOGGER.warning("unable to get json data from %s" % url)
+        LOGGER.info("exception occurred: %s" % str(ex))
         return None
 
 
@@ -88,7 +90,7 @@ class CTclient:
 
             return jsn.dumps(dict(chain=chain_json))
         except Exception as ex:
-            LOGGER.error("error occurred while constructing chain: %s"
+            LOGGER.warning("error occurred while constructing chain: %s"
                          % str(ex))
             return None
 
@@ -113,7 +115,8 @@ class CTclient:
         ret = get_json_from_url(url, self.timeout)
         result = []
         if ret is None or "certificates" not in ret:
-            LOGGER.error("unable to get root certificates")
+            LOGGER.warning("unable to get root certificates: %s" %
+                           (str(ret)))
             return result
         else:
             for root in ret["certificates"]:
@@ -121,8 +124,8 @@ class CTclient:
                     cert = get_cert_object_from_der(base64.b64decode(root))
                     result.append(cert)
                 except Exception as ex:
-                    LOGGER.error("exception occurred : %s" % str(ex))
-                    LOGGER.error("unable to parse root certificate")
+                    LOGGER.warning("unable to parse root certificate")
+                    LOGGER.info("exception occurred : %s" % str(ex))
                     continue
             return result
 
@@ -146,8 +149,8 @@ class CTclient:
                 if not (precert_flag is None or pem is None or cert is None):
                     result.append((precert_flag, pem, cert))
         else:
-            LOGGER.error("unable to get entries in properly")
-            LOGGER.debug("return from log server: %s" % str(ret))
+            LOGGER.warning("unable to get entries in properly")
+            LOGGER.info("return data from log server: %s" % str(ret))
         return result
 
     def _parse_first_found_cert_in_tls_encoded_data(self, bytes_data):
@@ -193,7 +196,7 @@ class CTclient:
                 else:
                     precert_flag = False
                     target_data = b''
-                    LOGGER.error("unknown log_entry_type: %s" %
+                    LOGGER.warning("unknown log_entry_type: %s" %
                                  str(log_entry_type))
 
                 rawdata, cert = \
@@ -203,8 +206,8 @@ class CTclient:
                 pem = base64.b64encode(rawdata).decode("ascii")
 
         except Exception as ex:
-            LOGGER.error("except occurred while parsing cert: %s" % str(ex))
-            LOGGER.error("unable to get certificate from entry")
-            LOGGER.debug("%s" % str(entry))
+            LOGGER.warning("except occurred while parsing cert: %s" % str(ex))
+            LOGGER.info("unable to get certificate from entry")
+            LOGGER.info("%s" % str(entry))
 
         return precert_flag, pem, cert
