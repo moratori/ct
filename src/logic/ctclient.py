@@ -126,6 +126,12 @@ class CTclient:
                     continue
             return result
 
+    def is_readable_server(self) -> bool:
+        return len(self.get_certificates(0, 0)) > 0
+
+    def is_unreadable_server(self) -> bool:
+        return len(self.get_certificates(0, 0)) <= 0
+
     def get_certificates(self, startsize, endsize):
         url = urllib.parse.urljoin(self.logserver,
                                    CTclient.GET_ENTRIES)

@@ -25,5 +25,27 @@ class TestCTclient(unittest.TestCase):
             "https://ct.googleapis.com/logs/argon2021/", 10)
 
         self.assertTrue(instance.get_sth())
+   
+    def test_1(self):
+        instance = client.CTclient(
+            "https://ct.googleapis.com/logs/argon2021/", 10)
+
         self.assertTrue(instance.get_roots())
+
+    def test_2(self):
+        instance = client.CTclient(
+            "https://ct.googleapis.com/logs/argon2021/", 10)
+
         self.assertTrue(instance.get_certificates(100, 103))
+
+    def test_3(self):
+        instance = client.CTclient(
+            "https://ct.googleapis.com/logs/argon2021/", 10)
+
+        self.assertTrue(instance.is_readable_server())
+
+    def test_4(self):
+        instance = client.CTclient(
+            "https://ct.googleapis.com/logs/argon2021/", 10)
+
+        self.assertFalse(instance.is_unreadable_server())
