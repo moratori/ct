@@ -37,6 +37,8 @@ class RegistLogServer(appframe.MySQLApplication):
                 filter(LogServer.log_id == server.log_id).\
                 all()
             if not alredy:
+                LOGGER.info("new log server found: %s" %
+                            (str(server.url)))
                 self.session.add(server)
 
         self.session.commit()

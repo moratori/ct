@@ -53,6 +53,7 @@ class MaintainLogServer(appframe.MySQLApplication):
                 all()
 
         for server in target:
+            LOGGER.info("deactivating log server: %s" % server.url)
             server.deactivated = True
 
         self.session.commit()
