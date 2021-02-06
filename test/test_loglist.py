@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../src'))
 import logic.loglist as loglist
 
 
-class TestCTclient(unittest.TestCase):
+class TestLogList(unittest.TestCase):
 
     def __init__(self, *positional, **keyword):
         unittest.TestCase.__init__(self, *positional, **keyword)
@@ -25,3 +25,17 @@ class TestCTclient(unittest.TestCase):
         self.assertTrue(len(ll.loglist) == 0)
         ll.get_list("https://www.gstatic.com/ct/log_list/v2/log_list.json", 10)
         self.assertTrue(len(ll.loglist) > 0)
+
+    def test_1(self):
+        ll = loglist.LogList()
+        self.assertTrue(len(ll.loglist) == 0)
+        ll.get_list("https://www.gstatic.com/ct/log_list/v2/log_list.json", 10)
+
+        self.assertTrue(len(ll.find_readable_server(3)) > 0)
+
+    def test_2(self):
+        ll = loglist.LogList()
+        self.assertTrue(len(ll.loglist) == 0)
+        ll.get_list("https://www.gstatic.com/ct/log_list/v2/log_list.json", 10)
+
+        self.assertTrue(len(ll.find_unreadable_server(3)) > 0)

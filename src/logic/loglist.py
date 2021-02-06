@@ -47,14 +47,14 @@ class LogList:
         result = []
         for server in self.loglist:
             client = CTclient(server.url, timeout)
-            if test(client.get_certificates(0, 0)):
+            if test(client):
                 result.append(server)
         return result
 
     def find_readable_server(self, timeout) -> List[LogServer]:
-        return self.__find_server(lambda x: len(x) > 0,
+        return self.__find_server(lambda x: x.is_readable_server(),
                                   timeout)
 
     def find_unreadable_server(self, timeout) -> List[LogServer]:
-        return self.__find_server(lambda x: len(x) <= 0,
+        return self.__find_server(lambda x: x.is_unreadable_server(),
                                   timeout)
