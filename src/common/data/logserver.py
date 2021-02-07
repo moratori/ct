@@ -33,6 +33,15 @@ class LogServer(Base):  # type: ignore
                  String(1024),
                  nullable=False)
 
+    last_fetched_entry = Column("last_fetched_entry",
+                                BigInteger,
+                                nullable=False,
+                                default=-1)
+
+    last_fetched_at = Column("last_fetched_at",
+                             DateTime(),
+                             nullable=True)
+
     access_failed_cnt = Column("access_failed_cnt",
                                Integer,
                                nullable=False,

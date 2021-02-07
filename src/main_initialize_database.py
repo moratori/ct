@@ -2,6 +2,9 @@
 
 import common.framework.application.mysqlapplication as appframe
 import common.data.logserver as LogServer
+import common.data.certificate as Certificate
+import common.data.subjectaltname as SubjectAltName
+import common.data.logentry as LogEntry
 
 global LOGGER
 
@@ -22,6 +25,9 @@ class InitializeDatabase(appframe.MySQLApplication):
 
     def run_application(self, **args):
         LogServer.Base.metadata.create_all(bind=self.dbengine)
+        SubjectAltName.Base.metadata.create_all(bind=self.dbengine)
+        Certificate.Base.metadata.create_all(bind=self.dbengine)
+        LogEntry.Base.metadata.create_all(bind=self.dbengine)
 
     def teardown_application(self):
         pass
