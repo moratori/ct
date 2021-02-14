@@ -76,7 +76,7 @@ class CTclient:
         preamble = "-----BEGIN CERTIFICATE-----"
         postamble = "-----END CERTIFICATE-----"
         pattern = \
-            "[\r\n]*%s[\r\n]+[a-zA-Z0-9\+/=\r\n ]+[\r\n]+%s[\r\n]*" % (
+            "[\r\n]*%s[\r\n]+[a-zA-Z0-9+/=\r\n ]+[\r\n]+%s[\r\n]*" % (
                 preamble,
                 postamble)
         try:
@@ -90,8 +90,8 @@ class CTclient:
 
             return jsn.dumps(dict(chain=chain_json))
         except Exception as ex:
-            LOGGER.warning("error occurred while constructing chain: %s"
-                         % str(ex))
+            LOGGER.warning("error occurred while constructing chain: %s" %
+                           str(ex))
             return None
 
     def add_chain(self, chainfile):
@@ -108,6 +108,16 @@ class CTclient:
         ret = get_json_from_url(url, self.timeout)
 
         return ret
+
+    def get_tree_size(self):
+        ret = self.get_sth()
+        if ret is not None:
+            try:
+                return int(ret["tree_size"])
+            except KeyError:
+                LOGGER.warning("unable to get tree_size: %s" %
+                               str(ret))
+        return None
 
     def get_roots(self):
         url = urllib.parse.urljoin(self.logserver,
@@ -136,6 +146,9 @@ class CTclient:
         return len(self.get_certificates(0, 0)) <= 0
 
     def get_certificates(self, startsize, endsize):
+        if startsize > endsize:
+            LOGGER.error("startsize must be less than endsize")
+            return []
         url = urllib.parse.urljoin(self.logserver,
                                    CTclient.GET_ENTRIES)
         params = dict(start=startsize, end=endsize)
@@ -143,11 +156,23 @@ class CTclient:
 
         result = []
         if ret is not None and ("entries" in ret):
-            for entry in ret["entries"]:
+            entries = ret["entries"]
+            if entries is None:
+                LOGGER.error("maybe range %s~%s is too big" %
+                             (startsize, endsize))
+                return []
+            expected_size = (endsize - startsize + 1)
+            if len(entries) != expected_size:
+                LOGGER.error("num of entries does not match request size")
+                LOGGER.info("req : actual = %d : %d" % (expected_size,
+                                                        len(entries)))
+                return result
+            for num, entry in enumerate(entries):
+                entry_num = num + startsize
                 precert_flag, pem, cert = \
                     self.parse_entry_to_certificate(entry)
                 if not (precert_flag is None or pem is None or cert is None):
-                    result.append((precert_flag, pem, cert))
+                    result.append((precert_flag, pem, cert, entry_num))
         else:
             LOGGER.warning("unable to get entries in properly")
             LOGGER.info("return data from log server: %s" % str(ret))
@@ -197,7 +222,7 @@ class CTclient:
                     precert_flag = False
                     target_data = b''
                     LOGGER.warning("unknown log_entry_type: %s" %
-                                 str(log_entry_type))
+                                   str(log_entry_type))
 
                 rawdata, cert = \
                     self._parse_first_found_cert_in_tls_encoded_data(
