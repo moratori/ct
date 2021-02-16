@@ -10,24 +10,24 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 LOGGER = getLogger(__name__)
 
 
-class MySQLApplication(appframe.BaseApplication):
+class PostgreSQLApplication(appframe.BaseApplication):
 
     def __init__(self, module_name, script_name):
         super().__init__(module_name, script_name)
 
     def validate_config(self):
-        self.conf.common.mariadb.user
-        self.conf.common.mariadb.passwd
-        self.conf.common.mariadb.host
-        self.conf.common.mariadb.dbname
+        self.conf.common.postgresql.user
+        self.conf.common.postgresql.passwd
+        self.conf.common.postgresql.host
+        self.conf.common.postgresql.dbname
 
     def setup_resource(self):
-        database_specifier = 'mysql://%s:%s@%s/%s?charset=utf8' % (
-            self.conf.common.mariadb.user,
-            self.conf.common.mariadb.passwd,
-            self.conf.common.mariadb.host,
-            self.conf.common.mariadb.dbname
-        )
+        database_specifier = \
+            "postgresql+psycopg2://%s:%s@%s/%s" % (
+                self.conf.common.postgresql.user,
+                self.conf.common.postgresql.passwd,
+                self.conf.common.postgresql.host,
+                self.conf.common.postgresql.dbname)
         self.dbengine = create_engine(database_specifier,
                                       encoding="utf-8",
                                       echo=False)
