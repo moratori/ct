@@ -10,7 +10,7 @@ import binascii
 from cryptography.hazmat.primitives import hashes
 from typing import List
 from sqlalchemy.sql.expression import false
-from common.data.logserver import LogServer
+from common.db.table import LogServer
 from logic.ctclient import CTclient
 
 

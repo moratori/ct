@@ -2,7 +2,7 @@
 
 import requests
 import datetime
-from common.data.logserver import LogServer
+from common.db.table import LogServer
 from logic.ctclient import CTclient
 from logging import getLogger
 from typing import List

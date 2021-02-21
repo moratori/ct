@@ -5,7 +5,7 @@ docstring is here
 """
 
 import common.framework.application.mysqlapplication as appframe
-from common.data.logserver import LogServer
+from common.db.table import LogServer
 from logic.loglist import LogList
 from typing import List
 
