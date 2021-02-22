@@ -6,6 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base  # type: ignore
 from sqlalchemy import Column, String, DateTime  # type: ignore
 from sqlalchemy import Boolean, BigInteger, Index
 from sqlalchemy import ForeignKey, Integer, Enum
+from sqlalchemy import Text
 
 Base = declarative_base()
 
@@ -71,10 +72,6 @@ class Certificate(Base):  # type: ignore
                         Boolean,
                         nullable=False)
 
-    is_root = Column("is_root",
-                     Boolean,
-                     nullable=False)
-
     serial_number = Column("serial_number",
                            String(256),
                            nullable=False)
@@ -99,6 +96,11 @@ class Certificate(Base):  # type: ignore
                        String(8192),
                        nullable=False)
 
+    __abstract__ = True
+
+
+class EECertificateWithSAN(Certificate):
+
     # パーテンションにする為には、primaryにする必要がある
     sans_id = Column("sans_id",
                      BigInteger,
@@ -108,12 +110,45 @@ class Certificate(Base):  # type: ignore
     version = Column(BigInteger,
                      nullable=False)
 
-    __tablename__ = "certificate"
+    __tablename__ = "ee_certificate_with_san"
     __mapper_args__ = {"version_id_col": version}
     __table_args__ = (Index("ix_sans_id", "sans_id"),
                       Index("ix_issuer", "issuer"),
                       {"mysql_partition_by": "HASH( sans_id )",
                        "mysql_partitions": "100"})
+
+
+class EECertificateWithoutSAN(Certificate):
+
+    common_name = Column("common_name",
+                         String(256),
+                         nullable=False)
+
+    version = Column(BigInteger,
+                     nullable=False)
+
+    __tablename__ = "ee_certificate_without_san"
+    __mapper_args__ = {"version_id_col": version}
+    __table_args__ = (Index("ix_common_name", "common_name"),
+                      Index("ix_issuer", "issuer"))
+
+
+class RootCertificate(Certificate):
+
+    version = Column(BigInteger,
+                     nullable=False)
+
+    __tablename__ = "root_certificate"
+    __mapper_args__ = {"version_id_col": version}
+
+
+class IntermediateCertificate(Certificate):
+
+    version = Column(BigInteger,
+                     nullable=False)
+
+    __tablename__ = "intermediate_certificate"
+    __mapper_args__ = {"version_id_col": version}
 
 
 class LogServer(Base):  # type: ignore
@@ -188,4 +223,33 @@ class LogEntry(Base):  # type: ignore
                      nullable=False)
 
     __tablename__ = "log_entry"
+    __mapper_args__ = {'version_id_col': version}
+
+
+class RetryTarget(Base):  # type: ignore
+
+    log_id = Column("log_id",
+                    String(128),
+                    ForeignKey(LogServer.log_id),
+                    nullable=False,
+                    primary_key=True)
+
+    entry_num = Column("entry_num",
+                       BigInteger,
+                       nullable=False,
+                       primary_key=True)
+
+    data = Column("data",
+                  Text,
+                  nullable=False)
+
+    is_retried = Column("is_retried",
+                        Boolean,
+                        nullable=False,
+                        default=False)
+
+    version = Column(BigInteger,
+                     nullable=False)
+
+    __tablename__ = "retry_target"
     __mapper_args__ = {'version_id_col': version}
