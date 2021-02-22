@@ -5,7 +5,7 @@ import os
 import shelve
 import threading
 import configparser
-import namedtupled
+import namedtupled  # type: ignore
 import sys
 import traceback
 
