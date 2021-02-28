@@ -4,10 +4,11 @@
 docstring is here
 """
 
-import common.framework.application.mysqlapplication as appframe
-from common.db.table import LogServer
-from logic.loglist import LogList
-from typing import List
+import common.framework.application.dbapplication.mysqlapplication as appframe
+from common.data.db.LogServer import LogServer
+from common.framework.dbsession import local_session
+from logic.loglistloader import get_log_list
+from typing import List, Any
 
 
 global LOGGER
@@ -15,49 +16,51 @@ global LOGGER
 
 class RegistLogServer(appframe.MySQLApplication):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(__name__, __file__)
 
-    def validate_config(self):
+    def validate_config(self) -> None:
         super().validate_config()
         str(self.conf.self.loglist.url)
         int(self.conf.self.loglist.timeout)
         int(self.conf.self.ctclient.timeout)
 
-    def setup_resource(self):
+    def setup_resource(self) -> None:
         super().setup_resource()
 
-    def setup_application(self):
+    def setup_application(self) -> None:
         pass
 
-    def regist_readable_server(self, servers: List[LogServer]):
+    def regist_readable_server(self,
+                               servers: List[LogServer],
+                               timeout: int) -> None:
 
-        for server in servers:
-            alredy = self.session.query(LogServer).\
-                filter(LogServer.log_id == server.log_id).\
-                all()
-            if not alredy:
-                LOGGER.info("new log server found: %s" %
-                            (str(server.url)))
-                self.session.add(server)
+        with local_session(self.thread_local_session_maker,
+                           commit_on_exit=True) as session:
 
-        self.session.commit()
+            for server in servers:
+                alredy = session.query(LogServer).\
+                    filter(LogServer.log_id == server.log_id).\
+                    all()
+                if not alredy and server.is_readable(timeout):
+                    LOGGER.info("new log server found: %s" %
+                                (str(server.url)))
+                    session.add(server)
 
-    def run_application(self):
-        loglist = LogList()
-        loglist.get_list(
-            self.conf.self.loglist.url,
-            self.conf.self.loglist.timeout)
+    def run_application(self, **args: Any) -> None:
 
-        readable = loglist.find_readable_server(
-            self.conf.self.ctclient.timeout)
+        servers = get_log_list(self.conf.self.loglist.url,
+                               self.conf.self.loglist.timeout)
 
-        self.regist_readable_server(readable)
+        if servers is not None:
+            self.regist_readable_server(
+                servers,
+                self.conf.self.ctclient.timeout)
 
-    def teardown_application(self):
+    def teardown_application(self) -> None:
         pass
 
-    def teardown_resource(self):
+    def teardown_resource(self) -> None:
         pass
 
 

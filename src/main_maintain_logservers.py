@@ -4,10 +4,10 @@
 docstring is here
 """
 
-import common.framework.application.mysqlapplication as appframe
-from common.db.table import LogServer
-from logic.ctclient import CTclient
-from typing import List
+import common.framework.application.dbapplication.mysqlapplication as appframe
+from typing import Any
+from common.data.db.LogServer import LogServer
+from common.framework.dbsession import local_session
 
 
 global LOGGER
@@ -15,57 +15,55 @@ global LOGGER
 
 class MaintainLogServer(appframe.MySQLApplication):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(__name__, __file__)
 
-    def validate_config(self):
+    def validate_config(self) -> None:
         super().validate_config()
         int(self.conf.self.ctclient.timeout)
         int(self.conf.self.maintain.failed_threshold)
 
-    def setup_resource(self):
+    def setup_resource(self) -> None:
         super().setup_resource()
 
-    def setup_application(self):
+    def setup_application(self) -> None:
         pass
 
-    def countup_failed_cnt(self):
+    def countup_failed_cnt(self) -> None:
 
-        servers: List[LogServer] = \
-            self.session.query(LogServer).all()
+        with local_session(self.thread_local_session_maker,
+                           commit_on_exit=True) as session:
 
-        for server in servers:
-            url = server.url
-            client = CTclient(url, self.conf.self.ctclient.timeout)
-            if client.is_unreadable_server():
-                LOGGER.info("unreadable server found: %s" % (url))
-                server.access_failed_cnt += 1
+            servers = session.query(LogServer).all()
 
-        self.session.commit()
+            for server in servers:
+                if not server.is_readable(self.conf.self.ctclient.timeout):
+                    LOGGER.info("unreadable server found: %s" % (server.url))
+                    server.access_failed_cnt += 1
 
-    def deactivate_logserver(self):
+    def deactivate_logserver(self) -> None:
 
         th = self.conf.self.maintain.failed_threshold
 
-        target: List[LogServer] = \
-            self.session.query(LogServer.log_id).\
-            filter(LogServer.access_failed_cnt >= th).\
-            all()
+        with local_session(self.thread_local_session_maker,
+                           commit_on_exit=True) as session:
 
-        for server in target:
-            LOGGER.info("deactivating log server: %s" % server.url)
-            server.deactivated = True
+            target = session.query(LogServer.log_id).\
+                filter(LogServer.access_failed_cnt >= th).\
+                all()
 
-        self.session.commit()
+            for server in target:
+                LOGGER.info("deactivating log server: %s" % server.url)
+                server.deactivated = True
 
-    def run_application(self):
+    def run_application(self, **args: Any) -> None:
         self.countup_failed_cnt()
         self.deactivate_logserver()
 
-    def teardown_application(self):
+    def teardown_application(self) -> None:
         pass
 
-    def teardown_resource(self):
+    def teardown_resource(self) -> None:
         pass
 
 
