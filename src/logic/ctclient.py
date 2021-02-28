@@ -6,8 +6,8 @@ import re
 import json as jsn
 import urllib.parse
 import requests
-from typing import Optional
-from typing import Any
+import cryptography.x509 as crypto
+from typing import Optional, Any, List, Tuple, Dict
 from logging import getLogger
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -15,7 +15,9 @@ from cryptography.hazmat.backends import default_backend
 LOGGER = getLogger(__name__)
 
 
-def get_json_from_url(url, timeout, params=dict()) -> Optional[Any]:
+def get_json_from_url(url: str,
+                      timeout: int,
+                      params: Dict = dict()) -> Optional[Any]:
     try:
         res = requests.get(url, params=params, timeout=timeout)
         content_type = res.headers["content-type"]
@@ -33,7 +35,9 @@ def get_json_from_url(url, timeout, params=dict()) -> Optional[Any]:
         return None
 
 
-def post_json_to_url(url, timeout, data=dict()):
+def post_json_to_url(url: str,
+                     timeout: int,
+                     data: str = "") -> Optional[Any]:
     try:
         res = requests.post(url, data=data, timeout=timeout,
                             headers={'content-type': 'application/json'})
@@ -52,11 +56,11 @@ def post_json_to_url(url, timeout, data=dict()):
         return None
 
 
-def get_cert_object_from_der(der):
+def get_cert_object_from_der(der: bytes) -> crypto.Certificate:
     try:
         cert = x509.load_der_x509_certificate(der, default_backend())
     except Exception as ex:
-        LOGGER.debug("unable to parse data using cryptography: %s" % der)
+        LOGGER.debug("unable to parse data using cryptography: %r" % der)
         raise ex
     return cert
 
@@ -68,11 +72,11 @@ class CTclient:
     GET_ENTRIES = "ct/v1/get-entries"
     ADD_CHAIN = "ct/v1/add-chain"
 
-    def __init__(self, logserver, timeout):
+    def __init__(self, logserver: str, timeout: int) -> None:
         self.logserver = logserver.rstrip("/") + "/"
         self.timeout = timeout
 
-    def _construct_chain_json(self, chainfile):
+    def _construct_chain_json(self, chainfile: str) -> Optional[str]:
         preamble = "-----BEGIN CERTIFICATE-----"
         postamble = "-----END CERTIFICATE-----"
         pattern = \
@@ -94,22 +98,23 @@ class CTclient:
                            str(ex))
             return None
 
-    def add_chain(self, chainfile):
+    def add_chain(self, chainfile: str) -> Optional[Any]:
         chain_json = self._construct_chain_json(chainfile)
         if chain_json is not None:
             url = urllib.parse.urljoin(self.logserver,
                                        CTclient.ADD_CHAIN)
             ret = post_json_to_url(url, self.timeout, data=chain_json)
             return ret
+        return None
 
-    def get_sth(self):
+    def get_sth(self) -> Optional[Any]:
         url = urllib.parse.urljoin(self.logserver,
                                    CTclient.GET_STH)
         ret = get_json_from_url(url, self.timeout)
 
         return ret
 
-    def get_tree_size(self):
+    def get_tree_size(self) -> Optional[int]:
         ret = self.get_sth()
         if ret is not None:
             try:
@@ -119,11 +124,11 @@ class CTclient:
                                str(ret))
         return None
 
-    def get_roots(self):
+    def get_roots(self) -> List[crypto.Certificate]:
         url = urllib.parse.urljoin(self.logserver,
                                    CTclient.GET_ROOTS)
         ret = get_json_from_url(url, self.timeout)
-        result = []
+        result: List[crypto.Certificate] = []
         if ret is None or "certificates" not in ret:
             LOGGER.warning("unable to get root certificates: %s" %
                            (str(ret)))
@@ -140,45 +145,59 @@ class CTclient:
             return result
 
     def is_readable_server(self) -> bool:
-        return len(self.get_certificates(0, 0)) > 0
+        succ, failed = self.get_certificates(0, 0)
+        return len(succ) + len(failed) > 0
 
     def is_unreadable_server(self) -> bool:
-        return len(self.get_certificates(0, 0)) <= 0
+        succ, failed = self.get_certificates(0, 0)
+        return len(succ) + len(failed) <= 0
 
-    def get_certificates(self, startsize, endsize):
+    def get_certificates(self,
+                         startsize: int,
+                         endsize: int) -> \
+            Tuple[List[Tuple[bool, str, crypto.Certificate, int]],
+                  List[Tuple[int, str]]]:
+
         if startsize > endsize:
             LOGGER.error("startsize must be less than endsize")
-            return []
+            return [], []
+
         url = urllib.parse.urljoin(self.logserver,
                                    CTclient.GET_ENTRIES)
         params = dict(start=startsize, end=endsize)
         ret = get_json_from_url(url, self.timeout, params=params)
 
-        result = []
+        result: List[Tuple[bool, str, Any, int]] = []
+        retry_target: List[Tuple[int, str]] = []
+
         if ret is not None and ("entries" in ret):
             entries = ret["entries"]
             if entries is None:
                 LOGGER.error("maybe range %s~%s is too big" %
                              (startsize, endsize))
-                return []
+                return [], []
             expected_size = (endsize - startsize + 1)
             if len(entries) != expected_size:
                 LOGGER.error("num of entries does not match request size")
                 LOGGER.info("req : actual = %d : %d" % (expected_size,
                                                         len(entries)))
-                return result
+                return [], []
             for num, entry in enumerate(entries):
                 entry_num = num + startsize
                 precert_flag, pem, cert = \
                     self.parse_entry_to_certificate(entry)
                 if not (precert_flag is None or pem is None or cert is None):
                     result.append((precert_flag, pem, cert, entry_num))
+                else:
+                    retry_target.append((entry_num, entry))
         else:
             LOGGER.warning("unable to get entries in properly")
             LOGGER.info("return data from log server: %s" % str(ret))
-        return result
+        return result, retry_target
 
-    def _parse_first_found_cert_in_tls_encoded_data(self, bytes_data):
+    def _parse_first_found_cert_in_tls_encoded_data(
+            self,
+            bytes_data: bytes) -> Tuple[bytes, crypto.Certificate]:
         CERT_LENGTH_SIZE = 3
         DER_SEQUENCE_TAG = 48
 
@@ -194,7 +213,11 @@ class CTclient:
 
         return data, cert
 
-    def parse_entry_to_certificate(self, entry):
+    def parse_entry_to_certificate(
+            self,
+            entry: Dict) -> Tuple[Optional[bool],
+                                  Optional[str],
+                                  Optional[crypto.Certificate]]:
         X509_ENTRY = 0
         PRECERT_ENTRY = 1
 
