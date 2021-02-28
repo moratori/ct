@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, String, BigInteger, DateTime, Boolean, Integer
 from common.data.db.base import BaseTable
+from logic.ctclient import CTclient
 
 
 class LogServer(BaseTable):  # type: ignore
@@ -47,3 +48,7 @@ class LogServer(BaseTable):  # type: ignore
 
     __tablename__ = "log_server"
     __mapper_args__ = {'version_id_col': version}
+
+    def is_readable(self, timeout: int) -> bool:
+        client = CTclient(self.url, timeout)
+        return client.is_readable_server()
