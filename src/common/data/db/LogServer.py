@@ -19,10 +19,6 @@ class LogServer(BaseTable):  # type: ignore
                          String(512),
                          nullable=False)
 
-    added_at = Column("added_at",
-                      DateTime(),
-                      nullable=False)
-
     url = Column("url",
                  String(1024),
                  nullable=False)
